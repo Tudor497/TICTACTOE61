@@ -1,3 +1,4 @@
+import java.awt.*;
 import java.util.Random;
 import java.util.Scanner;
 import java.sql.*;
@@ -6,10 +7,11 @@ import java.sql.*;
  * Created by tudor on 15-May-17.
  */
 public class Main {
-    private Board currentBoard;
+    private Board currentBoard =new Board();
     private GameState currentState;
     private Content user,pc, currentPlayer;
     public static Scanner sc = new Scanner(System.in);
+    private int Verify = 0;
 
     public Main()
     {
@@ -18,9 +20,11 @@ public class Main {
 
     public void Menu()
     {
+
         System.out.println("Menu");
         System.out.println("1.New Game");
         System.out.println("2.Load Game");
+        System.out.println("3.Save Game");
         int choice;
         do {
             System.out.print("Your option:");
@@ -29,7 +33,8 @@ public class Main {
             {
                 case 1 : newGame(); break;
                 case 2 : loadGame(); break;
-                default: System.out.println("Select 1 or 2"); break;
+                case 3 : saveGame(); break;
+                default: System.out.println("Select 1,2 or 3 "); break;
             }
         }
         while (choice<1 || choice>3);
@@ -37,8 +42,13 @@ public class Main {
 
     public void newGame()
     {
-        currentBoard = new Board();
-
+        //currentBoard=new Board();
+        if (Verify == 0) {
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    currentBoard.cells[i][j].cellContent = Content.EMPTY;
+        }
+        Verify = 0;
         initialize();
         do {
             if (currentPlayer==user) userOption();
@@ -329,11 +339,13 @@ public class Main {
             {
                 currentState = GameState.USERWIN;
                 System.out.println("You Win");
+                System.exit(0);
             }
             else
             {
                 currentState = GameState.PCWIN;
                 System.out.println("PC Win");
+                System.exit(0);
             }
 
         }
@@ -341,28 +353,74 @@ public class Main {
         {
             currentState = GameState.DRAW;
             System.out.println("It's a draw");
+            System.exit(0);
         }
     }
     public void saveGame()
     {
-    }
-    public  void loadGame()
-    {
+        String Name;
+        System.out.println("Name of the game: ");
+        Name = sc.next();
+        char[][] Matrix = new char[3][3];
+        for (int i=0; i<3; i++)
+            for (int j=0; j<3; j++) {
+                if (currentBoard.cells[i][j].cellContent == Content.X) Matrix[i][j] = 'X';
+                else if (currentBoard.cells[i][j].cellContent == Content.O) Matrix[i][j] = 'O';
+                else Matrix[i][j]='N';
+            }
 
-
-    }
-    public static void main(String[] args) {
         try {
             Connection myConn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
             Statement myStmt = myConn.createStatement();
-            ResultSet myRs = myStmt.executeQuery("select * from GAME");
-            while (myRs.next())
-            {
-                System.out.println(myRs.getString(1)+ ". " + myRs.getString(2));
-            }
+             myStmt.executeUpdate("insert into GAME (GameName, SaveDate, P11, P12, P13, P21, P22, P23, P31, P32, P33) " +
+                    "values('" + Name + "', SYSDATE(), '" + Matrix[0][0] + "','" + Matrix[0][1] + "','" +  Matrix[0][2] + "','" +  Matrix[1][0] + "','" +
+                    Matrix[1][1] + "','"  + Matrix[1][2] + "','" + Matrix[2][0] + "','" + Matrix[2][1] + "','" + Matrix[2][2] + "');"  );
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                currentBoard.cells[i][j].cellContent = Content.EMPTY;
+    }
+    public  void loadGame()
+    {
+        try {
+            Connection myConn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
+            Statement myStmt = myConn.createStatement();
+            ResultSet myResult =  myStmt.executeQuery("select * from GAME");
+            while(myResult.next())
+            {
+                System.out.println(myResult.getString(1) + ". " + myResult.getString(2)+ " " + myResult.getString(3));
+            }
+            System.out.println("What is your choice (select the number of the game) :");
+            String myChoice=null;
+            if(sc.hasNext()) {
+               myChoice = sc.next();
+            }
+            ResultSet myQuerry = myStmt.executeQuery("select P11, P12, P13, P21, P22, P23, P31, P32, P33 from GAME where GameId = " +myChoice+";");
+            //newGame();
+            while(myQuerry.next()) {
+                for (int i = 0; i < 3; i++)
+                    for (int j = 0; j < 3; j++) {
+                        if (myQuerry.getString(3 * i + j + 1).charAt(0) == 'X')
+                            currentBoard.cells[i][j].cellContent = Content.X;
+                        else if (myQuerry.getString(3 * i + j + 1).charAt(0) == 'O')
+                            currentBoard.cells[i][j].cellContent = Content.O;
+                        else currentBoard.cells[i][j].cellContent = Content.EMPTY;
+                    }
+
+            }
+            Verify = 1;
+            newGame();
+
+
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void main(String[] args) {
         new Main();
     }
 

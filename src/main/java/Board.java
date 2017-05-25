@@ -36,6 +36,7 @@ public class Board {
         else if (cells[0][2].cellContent == LastMove && cells[1][1].cellContent == LastMove &&
                 cells[2][0].cellContent == LastMove) return true;
         return  false;
+
     }
     public void BoardPrint()
     {
